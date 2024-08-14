@@ -3,21 +3,38 @@ package main
 import (
 	"fmt"
 	"sync/atomic"
+	"time"
 
 	"github.com/MarinX/keylogger"
 	"github.com/RamadanIbrahem98/kabsa/keys"
-	"github.com/robfig/cron/v3"
 )
 
 type Kabsa struct {
-	times int64
+	times   int64
+	startAt int64
 }
 
-func persist(kabsa *Kabsa) {
-	letters := atomic.LoadInt64(&kabsa.times)
-	atomic.StoreInt64(&kabsa.times, 0)
+var watchdogTimer *time.Timer
 
-	fmt.Println("Persisting ", letters, " presses, so the average WPM is ", letters/5)
+func resetWatchdog(kabsa *Kabsa) {
+	if watchdogTimer != nil {
+		watchdogTimer.Stop()
+	}
+	watchdogTimer = time.AfterFunc(5*time.Second, func() {
+		endAt := time.Now().UnixMilli()
+		startAt := atomic.LoadInt64(&kabsa.startAt)
+
+		if startAt == 0 {
+			return
+		}
+		atomic.StoreInt64(&kabsa.startAt, 0)
+		letters := atomic.LoadInt64(&kabsa.times)
+		atomic.StoreInt64(&kabsa.times, 0)
+		elapsedTime := (endAt - startAt) / 1000.0
+		wpm := int64((float64(letters) / 5.0) / (float64(elapsedTime) / 60.0))
+
+		fmt.Println("Watchdog triggered, so the average WPM is ", wpm)
+	})
 }
 
 func main() {
@@ -36,13 +53,6 @@ func main() {
 
 	kabsa := &Kabsa{times: 0}
 
-	c := cron.New()
-	c.AddFunc("* * * * *", func() {
-		go persist(kabsa)
-	}) // run every minute
-	c.Start()
-	defer c.Stop()
-
 	events := k.Read()
 
 	for e := range events {
@@ -50,7 +60,13 @@ func main() {
 			keyString := keys.KeyCodeMap[e.Code]
 			if keys.CountableKeys[keyString] {
 				atomic.AddInt64(&kabsa.times, 1)
-				fmt.Println("[event] release key ", e.KeyString(), " you have pressed ", kabsa.times, " presses.")
+				startAt := atomic.LoadInt64(&kabsa.startAt)
+
+				if startAt == 0 {
+					atomic.StoreInt64(&kabsa.startAt, time.Now().UnixMilli())
+				}
+
+				resetWatchdog(kabsa)
 			}
 		}
 	}
