@@ -33,10 +33,9 @@ I discovered MoneyType a few monthes ago, and I liked the idea and how smooth it
 
 I wanted to have a reference for my numbers so I used the same formula that MoneyType uses to calculate the WPM. You can find the formula on their [about](https://monkeytype.com/about) page:
 
->  wpm - total number of characters in the correctly typed words 
+>  wpm - total number of characters in the correctly typed words (including spaces), divided by 5 and normalised to 60 seconds.
 
-> (including spaces), divided by 5 and normalised to 60 seconds. 
- raw wpm - calculated just like wpm, but also includes incorrect words. 
+>  raw wpm - calculated just like wpm, but also includes incorrect words. 
 
 I only can calculate the raw WPM, as I don't have a way to know if the word is correct or not. I also don't have a way to know the total number of characters in the correctly typed words. So I just calculate the raw WPM
 
