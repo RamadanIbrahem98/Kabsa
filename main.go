@@ -6,17 +6,25 @@ import (
 
 	"github.com/MarinX/keylogger"
 	"github.com/RamadanIbrahem98/kabsa/keys"
+	"github.com/robfig/cron/v3"
 )
 
 type Kabsa struct {
 	times int64
 }
 
+func persist(kabsa *Kabsa) {
+	letters := atomic.LoadInt64(&kabsa.times)
+	atomic.StoreInt64(&kabsa.times, 0)
+
+	fmt.Println("Persisting ", letters, " presses, so the average WPM is ", letters/5)
+}
+
 func main() {
 	keyboard := keylogger.FindKeyboardDevice()
 
 	if len(keyboard) <= 0 {
-		panic("No keyboard found...you will need to provide manual input path")
+		panic("No keyboard found")
 	}
 
 	fmt.Println("Found a keyboard at", keyboard)
@@ -27,6 +35,13 @@ func main() {
 	defer k.Close()
 
 	kabsa := &Kabsa{times: 0}
+
+	c := cron.New()
+	c.AddFunc("* * * * *", func() {
+		go persist(kabsa)
+	}) // run every minute
+	c.Start()
+	defer c.Stop()
 
 	events := k.Read()
 
