@@ -15,13 +15,13 @@ type Kabsa struct {
 	endAt   int64
 }
 
-var watchdogTimer *time.Timer
+var debouncer *time.Timer
 
 func resetWatchdog(kabsa *Kabsa) {
-	if watchdogTimer != nil {
-		watchdogTimer.Stop()
+	if debouncer != nil {
+		debouncer.Stop()
 	}
-	watchdogTimer = time.AfterFunc(5*time.Second, func() {
+	debouncer = time.AfterFunc(5*time.Second, func() {
 		endAt := atomic.LoadInt64(&kabsa.endAt) + 1000
 		startAt := atomic.LoadInt64(&kabsa.startAt)
 
