@@ -46,6 +46,7 @@ The goal of Kabsa is to be a simple and lightweight tool to log key presses and 
 - [x] Log key presses
 - [x] Calculate the WPM in real-time
 - [x] Display the WPM in real-time
+- [ ] Do some input validation (e.g.: don't allow the same key to be pressed more than (n) in a row)
 - [ ] Save the WPM and cumulative characters count to a database (sqlite)
 - [ ] Do some analysis on the WPM
 - [ ] Display the analysis in a dashboard (Somehow XD)
