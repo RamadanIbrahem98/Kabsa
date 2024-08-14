@@ -20,7 +20,7 @@ func resetWatchdog(kabsa *Kabsa) {
 	if watchdogTimer != nil {
 		watchdogTimer.Stop()
 	}
-	watchdogTimer = time.AfterFunc(5*time.Second, func() {
+	watchdogTimer = time.AfterFunc(1*time.Second, func() {
 		endAt := time.Now().UnixMilli()
 		startAt := atomic.LoadInt64(&kabsa.startAt)
 
