@@ -12,6 +12,7 @@ import (
 type Kabsa struct {
 	times   int64
 	startAt int64
+	endAt   int64
 }
 
 var watchdogTimer *time.Timer
@@ -20,16 +21,20 @@ func resetWatchdog(kabsa *Kabsa) {
 	if watchdogTimer != nil {
 		watchdogTimer.Stop()
 	}
-	watchdogTimer = time.AfterFunc(1*time.Second, func() {
-		endAt := time.Now().UnixMilli()
+	watchdogTimer = time.AfterFunc(5*time.Second, func() {
+		endAt := atomic.LoadInt64(&kabsa.endAt) + 1000
 		startAt := atomic.LoadInt64(&kabsa.startAt)
 
-		if startAt == 0 {
+		if startAt == 0 || endAt == 1000 {
 			return
 		}
+
 		atomic.StoreInt64(&kabsa.startAt, 0)
+		atomic.StoreInt64(&kabsa.endAt, 0)
+
 		letters := atomic.LoadInt64(&kabsa.times)
 		atomic.StoreInt64(&kabsa.times, 0)
+
 		elapsedTime := (endAt - startAt) / 1000.0
 		wpm := int64((float64(letters) / 5.0) / (float64(elapsedTime) / 60.0))
 
@@ -60,6 +65,7 @@ func main() {
 			keyString := keys.KeyCodeMap[e.Code]
 			if keys.CountableKeys[keyString] {
 				atomic.AddInt64(&kabsa.times, 1)
+				atomic.StoreInt64(&kabsa.endAt, time.Now().UnixMilli())
 				startAt := atomic.LoadInt64(&kabsa.startAt)
 
 				if startAt == 0 {
