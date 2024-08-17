@@ -1,6 +1,6 @@
 build:
-	go build -o bin/kabsa main.go
+	go build -o bin/kabsa cmd/main.go
 run: build
-	sudo ./bin/kabsa
+	sudo bin/kabsa
 test:
 	go test -v ./...
