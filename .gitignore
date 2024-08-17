@@ -26,3 +26,6 @@ go.work.sum
 
 # sqlite3 database file
 *.db
+
+# bin directory
+bin/
