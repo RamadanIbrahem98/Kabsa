@@ -7,7 +7,7 @@ import (
 
 	"github.com/MarinX/keylogger"
 	"github.com/RamadanIbrahem98/kabsa/kabsa"
-	"github.com/RamadanIbrahem98/kabsa/keys"
+	"github.com/RamadanIbrahem98/kabsa/keyboard"
 )
 
 var debouncer *time.Timer
@@ -40,18 +40,13 @@ func resetWatchdog(kabsa *kabsa.Kabsa) {
 }
 
 func main() {
-	keyboard := keylogger.FindKeyboardDevice()
+	myKeyboard, err := keyboard.New()
 
-	if len(keyboard) <= 0 {
-		panic("No keyboard found")
-	}
-
-	fmt.Println("Found a keyboard at", keyboard)
-	k, err := keylogger.New(keyboard)
 	if err != nil {
 		panic(err)
 	}
-	defer k.Close()
+
+	defer myKeyboard.Close()
 
 	kabsa, err := kabsa.New()
 
@@ -61,12 +56,12 @@ func main() {
 
 	defer kabsa.DB.Close()
 
-	events := k.Read()
+	events := myKeyboard.Read()
 
 	for e := range events {
 		if e.Type == keylogger.EvKey && e.KeyRelease() {
-			keyString := keys.KeyCodeMap[e.Code]
-			if keys.CountableKeys[keyString] {
+			keyString := myKeyboard.KeyCodeMap[e.Code]
+			if myKeyboard.CountableKeys[keyString] {
 				atomic.AddInt64(&kabsa.Presses, 1)
 				atomic.StoreInt64(&kabsa.EndAt, time.Now().UnixMilli())
 				startAt := atomic.LoadInt64(&kabsa.StartAt)

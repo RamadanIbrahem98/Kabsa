@@ -1,6 +1,19 @@
-package keys
+package keyboard
 
-var KeyCodeMap = map[uint16]string{
+import (
+	"errors"
+	"fmt"
+
+	"github.com/MarinX/keylogger"
+)
+
+type Keyboard struct {
+	Press         *keylogger.KeyLogger
+	KeyCodeMap    map[uint16]string
+	CountableKeys map[string]bool
+}
+
+var keyCodeMap = map[uint16]string{
 	1:   "ESC",
 	2:   "1",
 	3:   "2",
@@ -122,11 +135,40 @@ var KeyCodeMap = map[uint16]string{
 	119: "PAUSE",
 }
 
-var CountableKeys = map[string]bool{
+var countableKeys = map[string]bool{
 	"1": true, "2": true, "3": true, "4": true, "5": true, "6": true, "7": true, "8": true, "9": true, "0": true,
 	"A": true, "B": true, "C": true, "D": true, "E": true, "F": true, "G": true, "H": true, "I": true, "J": true,
 	"K": true, "L": true, "M": true, "N": true, "O": true, "P": true, "Q": true, "R": true, "S": true, "T": true,
 	"U": true, "V": true, "W": true, "X": true, "Y": true, "Z": true, "SPACE": true, "-": true, "=": true,
 	"[": true, "]": true, ";": true, "'": true, "`": true, "\\": true, ",": true, ".": true, "/": true, "*": true,
 	"UP_8": true, "PGUP_9": true, "LEFT_4": true, "RT_ARROW_6": true, "END_1": true, "DOWN": true, "PGDN_3": true,
+}
+
+func New() (*Keyboard, error) {
+	keyboard := keylogger.FindKeyboardDevice()
+
+	if len(keyboard) <= 0 {
+		return nil, errors.New("no keyboard found")
+	}
+
+	fmt.Println("Found a keyboard at", keyboard)
+	k, err := keylogger.New(keyboard)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &Keyboard{
+		Press:         k,
+		KeyCodeMap:    keyCodeMap,
+		CountableKeys: countableKeys,
+	}, nil
+}
+
+func (kb *Keyboard) Read() chan keylogger.InputEvent {
+	return kb.Press.Read()
+}
+
+func (kb *Keyboard) Close() {
+	kb.Press.Close()
 }
