@@ -4,8 +4,6 @@ A simple and lightweight tool to log key presses and WPM (Words Per Minute) in r
 
 The name Kabsa (pun intended) is inspired by the Saudi dish [Kabsa](https://en.wikipedia.org/wiki/Kabsa). It also means "click" in Arabic, which is what Kabsa does, it logs your key presses.
 
-![Kabsa](./docs/kabsa.jpg)
-
 ## Table of Contents
 
 - [Installation](#installation)
@@ -20,12 +18,20 @@ You have 2 options to use Kabsa:
 1. Use it locally with go installed on your machine, by running the following command:
 
 ```bash
-sudo go run main.go
+make run
 ```
 
-2. Use Docker to run the containerized version of Kabsa:
+2. If you don't have make installed, you can run the following commands:
 
 ```bash
+go build -o bin/kabsa cmd/main.go
+bin/kabsa
+```
+
+3. Use Docker to run the containerized version of Kabsa:
+
+```bash
+sudo docker build -t kabsa .
 sudo docker run --rm --privileged -v /dev/input:/dev/input -e DB_PATH=/app/data/kabsa.db -v $(pwd)/data:/app/data kabsa
 ```
 
