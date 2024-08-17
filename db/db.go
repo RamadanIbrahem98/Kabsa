@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"log"
+	"os"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -13,7 +14,11 @@ type DB struct {
 }
 
 func New() (*DB, error) {
-	db, err := sql.Open("sqlite3", "./kabsa.db")
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "./data/kabsa.db"
+	}
+	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
 		return nil, err
 	}
