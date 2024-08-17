@@ -6,42 +6,36 @@ import (
 	"time"
 
 	"github.com/MarinX/keylogger"
-	"github.com/RamadanIbrahem98/kabsa/db"
+	"github.com/RamadanIbrahem98/kabsa/kabsa"
 	"github.com/RamadanIbrahem98/kabsa/keys"
 )
 
-type Kabsa struct {
-	times   int64
-	startAt int64
-	endAt   int64
-}
-
 var debouncer *time.Timer
 
-func resetWatchdog(kabsa *Kabsa, db *db.DB) {
+func resetWatchdog(kabsa *kabsa.Kabsa) {
 	if debouncer != nil {
 		debouncer.Stop()
 	}
 	debouncer = time.AfterFunc(5*time.Second, func() {
-		endAt := atomic.LoadInt64(&kabsa.endAt) + 1000
-		startAt := atomic.LoadInt64(&kabsa.startAt)
+		endAt := atomic.LoadInt64(&kabsa.EndAt) + 1000
+		startAt := atomic.LoadInt64(&kabsa.StartAt)
 
 		if startAt == 0 || endAt == 1000 {
 			return
 		}
 
-		atomic.StoreInt64(&kabsa.startAt, 0)
-		atomic.StoreInt64(&kabsa.endAt, 0)
+		atomic.StoreInt64(&kabsa.StartAt, 0)
+		atomic.StoreInt64(&kabsa.EndAt, 0)
 
-		letters := atomic.LoadInt64(&kabsa.times)
-		atomic.StoreInt64(&kabsa.times, 0)
+		letters := atomic.LoadInt64(&kabsa.Presses)
+		atomic.StoreInt64(&kabsa.Presses, 0)
 
 		elapsedTime := (endAt - startAt) / 1000.0
 		wpm := int64((float64(letters) / 5.0) / (float64(elapsedTime) / 60.0))
 
-		db.Insert(letters, startAt, endAt, wpm)
+		kabsa.DB.Insert(letters, startAt, endAt, wpm)
 
-		fmt.Println("Watchdog triggered, so the average WPM is ", wpm)
+		fmt.Println("Debouncer timedout, so the average WPM is ", wpm)
 	})
 }
 
@@ -59,15 +53,13 @@ func main() {
 	}
 	defer k.Close()
 
-	kabsa := &Kabsa{times: 0}
-
-	db, err := db.New()
+	kabsa, err := kabsa.New()
 
 	if err != nil {
 		panic(err)
 	}
 
-	defer db.Close()
+	defer kabsa.DB.Close()
 
 	events := k.Read()
 
@@ -75,15 +67,15 @@ func main() {
 		if e.Type == keylogger.EvKey && e.KeyRelease() {
 			keyString := keys.KeyCodeMap[e.Code]
 			if keys.CountableKeys[keyString] {
-				atomic.AddInt64(&kabsa.times, 1)
-				atomic.StoreInt64(&kabsa.endAt, time.Now().UnixMilli())
-				startAt := atomic.LoadInt64(&kabsa.startAt)
+				atomic.AddInt64(&kabsa.Presses, 1)
+				atomic.StoreInt64(&kabsa.EndAt, time.Now().UnixMilli())
+				startAt := atomic.LoadInt64(&kabsa.StartAt)
 
 				if startAt == 0 {
-					atomic.StoreInt64(&kabsa.startAt, time.Now().UnixMilli())
+					atomic.StoreInt64(&kabsa.StartAt, time.Now().UnixMilli())
 				}
 
-				resetWatchdog(kabsa, db)
+				resetWatchdog(kabsa)
 			}
 		}
 	}
