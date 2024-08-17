@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/MarinX/keylogger"
+	"github.com/RamadanIbrahem98/kabsa/db"
 	"github.com/RamadanIbrahem98/kabsa/keys"
 )
 
@@ -17,7 +18,7 @@ type Kabsa struct {
 
 var debouncer *time.Timer
 
-func resetWatchdog(kabsa *Kabsa) {
+func resetWatchdog(kabsa *Kabsa, db *db.DB) {
 	if debouncer != nil {
 		debouncer.Stop()
 	}
@@ -37,6 +38,8 @@ func resetWatchdog(kabsa *Kabsa) {
 
 		elapsedTime := (endAt - startAt) / 1000.0
 		wpm := int64((float64(letters) / 5.0) / (float64(elapsedTime) / 60.0))
+
+		db.Insert(letters, startAt, endAt, wpm)
 
 		fmt.Println("Watchdog triggered, so the average WPM is ", wpm)
 	})
@@ -58,6 +61,14 @@ func main() {
 
 	kabsa := &Kabsa{times: 0}
 
+	db, err := db.New()
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer db.Close()
+
 	events := k.Read()
 
 	for e := range events {
@@ -72,7 +83,7 @@ func main() {
 					atomic.StoreInt64(&kabsa.startAt, time.Now().UnixMilli())
 				}
 
-				resetWatchdog(kabsa)
+				resetWatchdog(kabsa, db)
 			}
 		}
 	}
