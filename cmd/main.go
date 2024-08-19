@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/MarinX/keylogger"
@@ -10,13 +13,17 @@ import (
 	"github.com/RamadanIbrahem98/kabsa/keyboard"
 )
 
-var debouncer *time.Timer
+var (
+	debouncer *time.Timer
+	exitChan  = make(chan os.Signal, 1)
+)
 
 func resetWatchdog(kabsa *kabsa.Kabsa) {
 	if debouncer != nil {
 		debouncer.Stop()
 	}
-	debouncer = time.AfterFunc(5*time.Second, func() {
+	const DebouncerDuration = 5 * time.Second
+	debouncer = time.AfterFunc(DebouncerDuration, func() {
 		endAt := atomic.LoadInt64(&kabsa.EndAt) + 1000
 		startAt := atomic.LoadInt64(&kabsa.StartAt)
 
@@ -39,23 +46,7 @@ func resetWatchdog(kabsa *kabsa.Kabsa) {
 	})
 }
 
-func main() {
-	myKeyboard, err := keyboard.New()
-
-	if err != nil {
-		panic(err)
-	}
-
-	defer myKeyboard.Close()
-
-	kabsa, err := kabsa.New()
-
-	if err != nil {
-		panic(err)
-	}
-
-	defer kabsa.DB.Close()
-
+func handleKeyBoardEvents(kabsa *kabsa.Kabsa, myKeyboard *keyboard.Keyboard) {
 	events := myKeyboard.Read()
 
 	for e := range events {
@@ -74,4 +65,30 @@ func main() {
 			}
 		}
 	}
+}
+
+func main() {
+	myKeyboard, err := keyboard.New()
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer myKeyboard.Close()
+
+	kabsa, err := kabsa.New()
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer kabsa.DB.Close()
+
+	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, syscall.SIGTSTP)
+
+	go handleKeyBoardEvents(kabsa, myKeyboard)
+
+	<-exitChan
+
+	fmt.Println("Shutting down")
 }
