@@ -2,7 +2,6 @@ package keyboard
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/MarinX/keylogger"
 )
@@ -151,7 +150,6 @@ func New() (*Keyboard, error) {
 		return nil, errors.New("no keyboard found")
 	}
 
-	fmt.Println("Found a keyboard at", keyboard)
 	k, err := keylogger.New(keyboard)
 
 	if err != nil {
